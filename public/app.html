@@ -140,7 +140,7 @@ async function loadDomains() {
   const data = await res.json();
   const list = document.getElementById('domainList');
   if (data.domains.length === 0) {
-    list.innerHTML = '<div class="empty">No domains yet. Add your first one above — you\\'ll see a live check result in seconds.</div>';
+     list.innerHTML = "<div class=\"empty\">No domains yet. Add your first one above — you'll see a live check result in seconds.</div>";   
     return;
   }
   list.innerHTML = data.domains.map(d => {
