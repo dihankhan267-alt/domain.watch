@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DomainWatch — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #14181F; --ink-soft: #2B313D; --paper: #EDEFF2; --paper-raised: #FFFFFF;
+    --line: #D6DAE1; --brand: #1B6E6A; --green: #2BAD6E; --amber: #DE9A2E; --red: #D14343; --muted: #6B7280;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px; }
+  h1, h2 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; }
+  a.back { color: var(--muted); text-decoration: none; font-size: 13px; }
+  nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; }
+  .logo .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+
+  .card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 26px; margin-bottom: 20px; }
+  input, select { font-family: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--ink); }
+  input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  button { font-family: inherit; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 7px; border: none; background: var(--brand); color: white; cursor: pointer; }
+  button:hover { background: #175854; }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .row-form { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row-form input { flex: 1; min-width: 180px; }
+
+  .domain-row { display: grid; grid-template-columns: 20px 1fr auto auto auto; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .domain-row:first-child { border-top: none; }
+  .beacon { width: 9px; height: 9px; border-radius: 50%; }
+  .beacon.ok { background: var(--green); }
+  .beacon.warn { background: var(--amber); }
+  .beacon.crit { background: var(--red); }
+  .beacon.pending { background: var(--muted); }
+  .domain { font-weight: 500; }
+  .detail { color: var(--muted); font-size: 12.5px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 20px 0; }
+
+  #authGate { max-width: 380px; margin: 90px auto; text-align: center; }
+  #authGate .card { text-align: left; }
+  .field-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .plan-badge { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; background: rgba(27,110,106,0.1); color: var(--brand); padding: 3px 9px; border-radius: 20px; text-transform: uppercase; }
+  #msg { font-size: 13px; margin-top: 10px; }
+  #msg.error { color: var(--red); }
+  #msg.ok { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div id="authGate" class="wrap">
+  <div class="logo" style="justify-content:center; margin-bottom: 26px;"><span class="dot"></span> DomainWatch</div>
+  <div class="card">
+    <h2 style="font-size:20px; margin-bottom: 6px;">Sign in</h2>
+    <p style="color:var(--muted); font-size:14px; margin-top:6px;">Enter your email — no password. (In production this sends a real magic link via Resend; for now it logs you straight in.)</p>
+    <div style="margin-top:16px;">
+      <span class="field-label">Email</span>
+      <input id="emailInput" type="email" placeholder="you@youragency.com" style="width:100%;">
+    </div>
+    <button id="signInBtn" style="margin-top:16px; width:100%;">Continue</button>
+    <div id="authMsg"></div>
+  </div>
+</div>
+
+<div id="dashboard" class="wrap" style="display:none;">
+  <nav>
+    <div class="logo"><span class="dot"></span> DomainWatch</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="plan-badge" id="planBadge">free</span>
+      <span class="mono" id="userEmail" style="font-size:13px; color:var(--muted);"></span>
+    </div>
+  </nav>
+
+  <div class="card">
+    <h2 style="font-size:17px; margin-bottom:14px;">Add a domain</h2>
+    <div class="row-form">
+      <input id="domainInput" placeholder="clientsite.com">
+      <input id="groupInput" placeholder="Client / group (optional)">
+      <button id="addBtn">Add &amp; check</button>
+    </div>
+    <div id="addMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:17px; margin-bottom:4px;">Your domains</h2>
+    <p style="color:var(--muted); font-size:13px; margin-top:4px;">Checked daily. Click "Check now" for an on-demand refresh.</p>
+    <div id="domainList" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let currentUser = JSON.parse(localStorage.getItem('dw_user') || 'null');
+
+function showDashboard() {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('userEmail').textContent = currentUser.email;
+  document.getElementById('planBadge').textContent = currentUser.plan;
+  loadDomains();
+}
+
+if (currentUser) showDashboard();
+
+document.getElementById('signInBtn').onclick = async () => {
+  const email = document.getElementById('emailInput').value.trim();
+  const msg = document.getElementById('authMsg');
+  if (!email.includes('@')) { msg.textContent = 'Enter a valid email.'; msg.className = 'error'; return; }
+  const res = await fetch('/api/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+  const data = await res.json();
+  if (!res.ok) { msg.textContent = data.error; msg.className = 'error'; return; }
+  currentUser = data.user;
+  localStorage.setItem('dw_user', JSON.stringify(currentUser));
+  showDashboard();
+};
+
+function daysUntil(iso) {
+  if (!iso) return null;
+  return Math.floor((new Date(iso).getTime() - Date.now()) / (1000*60*60*24));
+}
+
+function statusFor(check) {
+  if (!check) return { level: 'pending', label: 'not yet checked' };
+  if (check.alerts && check.alerts.some(a => a.level === 'critical')) {
+    return { level: 'crit', label: check.alerts.find(a => a.level === 'critical').message };
+  }
+  if (check.alerts && check.alerts.length > 0) {
+    return { level: 'warn', label: check.alerts[0].message };
+  }
+  return { level: 'ok', label: 'healthy' };
+}
+
+async function loadDomains() {
+  const res = await fetch(`/api/domains?userId=${currentUser.id}`);
+  const data = await res.json();
+  const list = document.getElementById('domainList');
+  if (data.domains.length === 0) {
+    list.innerHTML = '<div class="empty">No domains yet. Add your first one above — you\\'ll see a live check result in seconds.</div>';
+    return;
+  }
+  list.innerHTML = data.domains.map(d => {
+    const s = statusFor(d.lastCheck);
+    const sslDays = d.lastCheck && d.lastCheck.sslExpiry && d.lastCheck.sslExpiry.ok ? daysUntil(d.lastCheck.sslExpiry.expiresAt) : null;
+    const detail = sslDays !== null ? `SSL expires in ${sslDays}d` : 'awaiting first check';
+    return `
+      <div class="domain-row">
+        <span class="beacon ${s.level}"></span>
+        <div>
+          <div class="domain">${d.domain}</div>
+          <div class="detail">${d.group} · ${detail}</div>
+        </div>
+        <span class="detail" style="max-width:220px; text-align:right;">${s.label}</span>
+        <button class="ghost" onclick="checkNow('${d.id}')">Check now</button>
+        <button class="ghost" onclick="removeDomain('${d.id}')">Remove</button>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('addBtn').onclick = async () => {
+  const domain = document.getElementById('domainInput').value.trim();
+  const group = document.getElementById('groupInput').value.trim();
+  const msg = document.getElementById('addMsg');
+  const btn = document.getElementById('addBtn');
+  if (!domain) { msg.textContent = 'Enter a domain first.'; msg.className = 'error'; return; }
+  btn.disabled = true; btn.textContent = 'Checking...';
+  const res = await fetch('/api/domains', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, domain, group }) });
+  const data = await res.json();
+  btn.disabled = false; btn.textContent = 'Add & check';
+  if (!res.ok) { msg.textContent = data.error; msg.className = 'error'; return; }
+  msg.textContent = '';
+  document.getElementById('domainInput').value = '';
+  document.getElementById('groupInput').value = '';
+  await fetch(`/api/domains/${data.domain.id}/check`, { method: 'POST' });
+  loadDomains();
+};
+
+async function checkNow(id) {
+  await fetch(`/api/domains/${id}/check`, { method: 'POST' });
+  loadDomains();
+}
+
+async function removeDomain(id) {
+  await fetch(`/api/domains/${id}`, { method: 'DELETE' });
+  loadDomains();
+}
+</script>
+</body>
+</html>
